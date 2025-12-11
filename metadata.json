@@ -1,0 +1,5 @@
+{
+  "name": "AI Caricature Maker",
+  "description": "Create personalized caricatures from your photos and drawings using Gemini AI. Features include style transformation, pose customization, and physiognomy analysis.",
+  "requestFramePermissions": []
+}
