@@ -1,16 +1,22 @@
 import React, { useState } from 'react';
 
 interface AdminLoginProps {
-  onLogin: (password: string) => boolean;
+  onLogin: (password: string) => Promise<boolean>;
 }
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = onLogin(password);
+    setLoading(true);
+    setError(false);
+
+    const success = await onLogin(password);
+
+    setLoading(false);
     if (!success) {
       setError(true);
       setPassword('');
@@ -49,9 +55,10 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
           
           <button
             type="submit"
-            className="w-full h-14 bg-black text-white font-black text-xl uppercase hover:bg-[#FF5E00] hover:text-black border-4 border-black transition-all active:translate-x-1 active:translate-y-1 active:shadow-none shadow-[4px_4px_0px_0px_#FF5E00] rounded-none"
+            disabled={loading}
+            className="w-full h-14 bg-black text-white font-black text-xl uppercase hover:bg-[#FF5E00] hover:text-black border-4 border-black transition-all active:translate-x-1 active:translate-y-1 active:shadow-none shadow-[4px_4px_0px_0px_#FF5E00] rounded-none disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Start App
+            {loading ? 'Loading...' : 'Start App'}
           </button>
         </form>
       </div>

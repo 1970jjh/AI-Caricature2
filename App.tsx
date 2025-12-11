@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileUpload } from './components/FileUpload';
 import { PoseSelector } from './components/PoseSelector';
 import { LoadingScreen } from './components/LoadingScreen';
@@ -14,15 +14,59 @@ const App: React.FC = () => {
   const [pose, setPose] = useState<string>('');
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   const isFormComplete = drawingImage && faceImage && pose;
 
-  const handleAdminLogin = (password: string) => {
-    if (password === '6749467') {
-      setAppState(AppState.IDLE);
-      return true;
+  // 앱 시작 시 unlock 상태 확인
+  useEffect(() => {
+    checkUnlockStatus();
+  }, []);
+
+  const checkUnlockStatus = async () => {
+    try {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      if (data.unlocked) {
+        setAppState(AppState.IDLE);
+      }
+    } catch (e) {
+      console.log('Status check failed, showing login');
+    } finally {
+      setChecking(false);
     }
-    return false;
+  };
+
+  const handleAdminLogin = async (password: string): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, hours: 12 }),
+      });
+
+      if (res.ok) {
+        setIsAdmin(true);
+        setAppState(AppState.IDLE);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const handleLock = async () => {
+    try {
+      await fetch('/api/lock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: '6749467' }),
+      });
+    } catch (e) {}
+    setIsAdmin(false);
+    setAppState(AppState.LOCKED);
   };
 
   const handleGenerate = async () => {
@@ -61,6 +105,15 @@ const App: React.FC = () => {
     setError(null);
   };
 
+  // 상태 확인 중
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-[#F3F3F3] p-4 font-['Noto_Sans_KR'] flex items-center justify-center">
+        <div className="text-xl font-bold">로딩 중...</div>
+      </div>
+    );
+  }
+
   // If Locked, show Admin Login
   if (appState === AppState.LOCKED) {
     return (
@@ -77,9 +130,19 @@ const App: React.FC = () => {
         {/* Header */}
         {appState !== AppState.SUCCESS && (
           <div className="mb-10 mt-4 border-b-4 border-black pb-6">
-            <h1 className="text-5xl font-black text-black mb-2 uppercase tracking-tighter leading-[0.9]">
-              AI<br/><span className="text-[#FF5E00]">Cari</span><br/>cature
-            </h1>
+            <div className="flex justify-between items-start">
+              <h1 className="text-5xl font-black text-black mb-2 uppercase tracking-tighter leading-[0.9]">
+                AI<br/><span className="text-[#FF5E00]">Cari</span><br/>cature
+              </h1>
+              {isAdmin && (
+                <button
+                  onClick={handleLock}
+                  className="px-3 py-2 text-xs font-bold bg-gray-800 text-white border-2 border-black hover:bg-red-600 transition-colors"
+                >
+                  🔒 LOCK
+                </button>
+              )}
+            </div>
             <div className="text-xl font-bold text-black border-l-4 border-black pl-4 mt-4">
               나만의<br/>캐리커쳐<br/>만들기
             </div>
